@@ -4,26 +4,20 @@ Django production settings for vyzio_ads project.
 from .base import *
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+import dj_database_url
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='.onrender.com').split(',')
 
-# Database - PostgreSQL for production
+# Database - PostgreSQL for production (using DATABASE_URL)
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT', default='5432'),
-        'CONN_MAX_AGE': 60,
-        'OPTIONS': {
-            'connect_timeout': 10,
-        },
-    }
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL', default=''),
+        conn_max_age=60,
+        conn_health_checks=True,
+    )
 }
 
 # CORS - Restrict to specific origins in production
