@@ -40,25 +40,45 @@ SECURE_HSTS_PRELOAD = True
 # Email - SMTP for production
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-# Channels - Redis for production
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [config('REDIS_URL')],
-            'capacity': 1500,
-            'expiry': 10,
-        },
-    },
-}
+# Redis URL (optional - if not provided, use in-memory fallbacks)
+REDIS_URL = config('REDIS_URL', default='')
 
-# Caching - Redis
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': config('REDIS_URL'),
+# Channels - Redis for production (or in-memory for testing without Redis)
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+                'capacity': 1500,
+                'expiry': 10,
+            },
+        },
     }
-}
+else:
+    # In-memory channel layer for testing (not for production with multiple workers)
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
+
+# Caching - Redis or local memory
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
+    }
+else:
+    # Local memory cache for testing without Redis
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 # Static files - WhiteNoise compression
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
