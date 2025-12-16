@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/Kenneth-Sangli/Vyzio_website/discussions
+    about: Posez des questions et discutez avec la communauté
+  - name: 📖 Documentation
+    url: https://github.com/Kenneth-Sangli/Vyzio_website/wiki
+    about: Consultez notre documentation

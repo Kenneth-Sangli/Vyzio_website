@@ -1,0 +1,59 @@
+vyzio-ads/
+├── manage.py
+├── requirements.txt
+├── .env.example
+├── Dockerfile
+├── docker-compose.yml
+├── README.md
+├── config/
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── wsgi.py
+│   ├── asgi.py
+│   └── celery.py
+├── apps/
+│   ├── __init__.py
+│   ├── users/
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── admin.py
+│   │   └── apps.py
+│   ├── listings/
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── admin.py
+│   │   └── apps.py
+│   ├── messaging/
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── admin.py
+│   │   └── apps.py
+│   ├── payments/
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── admin.py
+│   │   └── apps.py
+│   ├── reviews/
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── admin.py
+│   │   └── apps.py
+│   └── admin_panel/
+│       ├── models.py
+│       ├── views.py
+│       ├── urls.py
+│       └── apps.py
+├── static/
+├── media/
+└── logs/
