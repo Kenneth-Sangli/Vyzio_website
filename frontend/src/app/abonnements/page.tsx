@@ -79,7 +79,11 @@ export default function SubscriptionsPage() {
   const fetchPlans = async () => {
     try {
       const response = await paymentsAPI.getPlans();
-      setPlans(response.data);
+      // Handle both array and paginated response
+      const plansData = Array.isArray(response.data) 
+        ? response.data 
+        : response.data?.results || [];
+      setPlans(plansData);
     } catch (error) {
       console.error('Error fetching plans:', error);
       toast({
@@ -177,7 +181,7 @@ export default function SubscriptionsPage() {
                       </div>
 
                       <ul className="space-y-3 mb-8">
-                        {plan.features_list.map((feature, index) => (
+                        {(plan.features_list || []).map((feature, index) => (
                           <li key={index} className="flex items-start gap-2">
                             <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
                             <span className="text-gray-600">{feature}</span>
