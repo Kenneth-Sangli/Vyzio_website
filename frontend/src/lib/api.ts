@@ -246,7 +246,7 @@ export const listingsAPI = {
         remaining_listings?: number;
         can_create?: boolean;
       };
-    }>('/listings/can_publish/'),
+    }>('/listings/can-publish/'),
   
   getFavorites: () =>
     api.get<PaginatedResponse<Listing>>('/listings/favorites/'),
