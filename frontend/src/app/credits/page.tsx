@@ -51,9 +51,8 @@ export default function CreditsPage() {
     try {
       const response = await paymentsAPI.getCreditPacks();
       // Handle both array and paginated response
-      const packs = Array.isArray(response.data) 
-        ? response.data 
-        : response.data?.results || [];
+      const data = response.data as any;
+      const packs = Array.isArray(data) ? data : (data?.results || []);
       setCreditPacks(packs);
       // Sélectionner le pack populaire par défaut
       const popularPack = packs.find((p: CreditPack) => p.is_popular);

@@ -80,9 +80,8 @@ export default function SubscriptionsPage() {
     try {
       const response = await paymentsAPI.getPlans();
       // Handle both array and paginated response
-      const plansData = Array.isArray(response.data) 
-        ? response.data 
-        : response.data?.results || [];
+      const data = response.data as any;
+      const plansData = Array.isArray(data) ? data : (data?.results || []);
       setPlans(plansData);
     } catch (error) {
       console.error('Error fetching plans:', error);
