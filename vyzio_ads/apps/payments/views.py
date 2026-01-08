@@ -292,9 +292,12 @@ class CreatePurchaseCheckoutView(APIView):
             return Response(result, status=status.HTTP_201_CREATED)
             
         except Exception as e:
+            import traceback
             logger.error(f"Erreur création checkout achat: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(f"Listing: {listing.id}, price: {listing.price}, seller: {listing.seller_id}")
             return Response(
-                {'error': 'Erreur lors de la création de la session de paiement'},
+                {'error': f'Erreur lors de la création de la session de paiement: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
