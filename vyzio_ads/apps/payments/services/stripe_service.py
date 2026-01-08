@@ -57,17 +57,29 @@ class StripeService:
         
         # Vérifier si l'utilisateur a déjà un customer ID
         from apps.payments.models import Payment
+        existing_customer_id = None
+        
         existing = Payment.objects.filter(
             user=user,
             stripe_customer_id__startswith='cus_'
         ).first()
         
         if existing and existing.stripe_customer_id:
-            return existing.stripe_customer_id
+            existing_customer_id = existing.stripe_customer_id
         
         # Vérifier dans l'abonnement
-        if hasattr(user, 'subscription') and user.subscription.stripe_customer_id:
-            return user.subscription.stripe_customer_id
+        if not existing_customer_id and hasattr(user, 'subscription') and user.subscription.stripe_customer_id:
+            existing_customer_id = user.subscription.stripe_customer_id
+        
+        # Si on a un customer ID existant, vérifier qu'il existe vraiment dans Stripe
+        if existing_customer_id:
+            try:
+                self.stripe.Customer.retrieve(existing_customer_id)
+                return existing_customer_id
+            except stripe.error.InvalidRequestError:
+                # Customer n'existe pas (probablement créé en mode test)
+                logger.warning(f"Customer {existing_customer_id} non trouvé dans Stripe, création d'un nouveau")
+                existing_customer_id = None
         
         # Créer un nouveau customer
         try:
