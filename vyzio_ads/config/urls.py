@@ -57,6 +57,7 @@ urlpatterns = [
     path('api/reviews/', include('apps.reviews.urls')),
     path('api/analytics/', include('apps.analytics.urls')),
     path('api/admin/', include('apps.admin_panel.urls')),
+    path('api/orders/', include('apps.orders.urls')),
 ]
 
 if settings.DEBUG:

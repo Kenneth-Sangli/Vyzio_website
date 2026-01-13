@@ -95,6 +95,7 @@ class WebhookHandler:
         - Abonnement: Activer l'abonnement
         - Pay-per-post: Créditer le compte
         - Single post: Activer l'annonce
+        - Purchase: Créer une commande
         """
         from apps.payments.models import Payment, Subscription, PostCredit
         from django.contrib.auth import get_user_model
@@ -121,6 +122,10 @@ class WebhookHandler:
         # Traiter selon le type
         if payment_type == 'subscription' or payment.payment_type == 'subscription':
             self._activate_subscription(payment, session)
+            
+        elif payment_type == 'purchase' or payment.payment_type == 'purchase':
+            # Achat d'un produit - créer une commande
+            self._create_order(payment, metadata)
             
         elif payment_type == 'post_credit' or payment.payment_type == 'post_credit':
             if metadata.get('listing_id'):
@@ -452,3 +457,101 @@ class WebhookHandler:
             
         except Exception as e:
             logger.error(f"Erreur mise à jour seller profile: {e}")
+
+    def _create_order(self, payment, metadata: dict):
+        """
+        Crée une commande après un achat de produit réussi.
+        
+        - Crée l'Order
+        - Notifie le vendeur
+        - Met à jour le listing (marqué comme vendu)
+        """
+        from apps.orders.models import Order
+        from apps.listings.models import Listing
+        from apps.messaging.models import Notification
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        
+        listing_id = metadata.get('listing_id')
+        seller_id = metadata.get('seller_id')
+        buyer_id = metadata.get('buyer_id')
+        
+        if not listing_id or not seller_id:
+            logger.error(f"Metadata manquante pour création order: {metadata}")
+            return
+        
+        try:
+            listing = Listing.objects.get(id=listing_id)
+            seller = User.objects.get(id=seller_id)
+            buyer = payment.user
+            
+            # Vérifier si une commande existe déjà pour ce paiement
+            if Order.objects.filter(payment=payment).exists():
+                logger.info(f"Order déjà créée pour payment {payment.id}")
+                return
+            
+            # Calculer les frais de plateforme (5%)
+            platform_fee_percent = 5
+            platform_fee = listing.price * platform_fee_percent / 100
+            seller_amount = listing.price - platform_fee
+            
+            # Créer la commande
+            order = Order.objects.create(
+                buyer=buyer,
+                seller=seller,
+                listing=listing,
+                payment=payment,
+                listing_title=listing.title,
+                listing_snapshot={
+                    'id': str(listing.id),
+                    'title': listing.title,
+                    'slug': listing.slug,
+                    'price': str(listing.price),
+                    'condition': listing.condition,
+                    'image': listing.images.first().image.url if listing.images.exists() else None,
+                },
+                item_price=listing.price,
+                platform_fee=platform_fee,
+                platform_fee_percent=platform_fee_percent,
+                seller_amount=seller_amount,
+                status='pending',
+                delivery_type='shipping' if listing.shipping_available else 'local',
+            )
+            
+            # Marquer le listing comme vendu
+            listing.status = 'sold'
+            listing.save(update_fields=['status', 'updated_at'])
+            
+            # Notifier le vendeur
+            Notification.create_sale_notification_for_seller(
+                seller=seller,
+                listing=listing,
+                buyer=buyer
+            )
+            order.seller_notified = True
+            order.save(update_fields=['seller_notified'])
+            
+            # Notifier l'acheteur
+            Notification.objects.create(
+                user=buyer,
+                type='purchase',
+                title='Achat confirmé !',
+                message=f'Votre achat de "{listing.title}" a été confirmé. Le vendeur va préparer votre commande.',
+                data={
+                    'order_id': str(order.id),
+                    'order_number': order.order_number,
+                    'listing_id': str(listing.id),
+                }
+            )
+            
+            logger.info(f"Order créée: {order.order_number} - {listing.title}")
+            
+        except Listing.DoesNotExist:
+            logger.error(f"Listing non trouvé pour création order: {listing_id}")
+        except User.DoesNotExist:
+            logger.error(f"Seller non trouvé pour création order: {seller_id}")
+        except Exception as e:
+            logger.error(f"Erreur création order: {e}")
+            raise
+
