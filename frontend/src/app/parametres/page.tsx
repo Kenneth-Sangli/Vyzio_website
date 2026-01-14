@@ -6,7 +6,7 @@ import { Header, Footer } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { authAPI } from '@/lib/api';
+import { authAPI, api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -22,6 +22,10 @@ import {
   Save,
   Eye,
   EyeOff,
+  Building2,
+  Wallet,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -58,6 +62,16 @@ export default function SettingsPage() {
     push_favorites: true,
   });
 
+  // Informations bancaires (pour les vendeurs)
+  const [bankData, setBankData] = useState({
+    bank_name: '',
+    account_holder: '',
+    iban: '',
+    bic: '',
+  });
+  const [bankSaved, setBankSaved] = useState(false);
+  const [loadingBank, setLoadingBank] = useState(false);
+
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/connexion?redirect=/parametres');
@@ -73,8 +87,31 @@ export default function SettingsPage() {
         bio: user.bio || '',
         location: user.location || '',
       });
+      
+      // Charger les informations bancaires si l'utilisateur est vendeur
+      if (user.role === 'seller' || user.role === 'professional') {
+        fetchBankDetails();
+      }
     }
   }, [user, isAuthenticated, router]);
+
+  const fetchBankDetails = async () => {
+    try {
+      const res = await api.get('/orders/wallet/me/');
+      if (res.data) {
+        setBankData({
+          bank_name: res.data.bank_name || '',
+          account_holder: res.data.account_holder || '',
+          iban: res.data.iban || '',
+          bic: res.data.bic || '',
+        });
+        setBankSaved(!!res.data.iban);
+      }
+    } catch (error) {
+      // Wallet n'existe pas encore, c'est normal
+      console.log('Pas de wallet existant');
+    }
+  };
 
   const handleProfileUpdate = async () => {
     setLoading(true);
@@ -163,10 +200,58 @@ export default function SettingsPage() {
     }
   };
 
+  const handleBankUpdate = async () => {
+    if (!bankData.iban || !bankData.account_holder) {
+      toast({
+        title: 'Erreur',
+        description: 'Veuillez renseigner au moins l\'IBAN et le titulaire du compte',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validation basique de l'IBAN
+    const cleanIban = bankData.iban.replace(/\s/g, '').toUpperCase();
+    if (cleanIban.length < 15 || cleanIban.length > 34) {
+      toast({
+        title: 'Erreur',
+        description: 'L\'IBAN semble invalide',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoadingBank(true);
+    try {
+      await api.post('/orders/wallet/bank-details/', {
+        ...bankData,
+        iban: cleanIban,
+      });
+      setBankSaved(true);
+      toast({
+        title: 'Informations bancaires enregistrées',
+        description: 'Vous pourrez maintenant recevoir vos paiements',
+        variant: 'success',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.response?.data?.detail || 'Impossible d\'enregistrer les informations',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingBank(false);
+    }
+  };
+
+  // Déterminer si l'utilisateur est vendeur
+  const isSeller = user?.role === 'seller' || user?.role === 'professional';
+
   const tabs = [
     { id: 'profile', label: 'Profil', icon: User },
     { id: 'security', label: 'Sécurité', icon: Lock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    ...(isSeller ? [{ id: 'payments', label: 'Paiements', icon: Wallet }] : []),
     { id: 'privacy', label: 'Confidentialité', icon: Shield },
   ];
 
@@ -403,6 +488,130 @@ export default function SettingsPage() {
                         <Save className="h-4 w-4 mr-2" />
                         Enregistrer les préférences
                       </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Paiements (Vendeurs uniquement) */}
+                {activeTab === 'payments' && isSeller && (
+                  <div>
+                    <h2 className="text-xl font-semibold mb-6">Informations de paiement</h2>
+                    
+                    <div className="space-y-6">
+                      {/* Statut */}
+                      <div className={`p-4 rounded-lg ${bankSaved ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'}`}>
+                        <div className="flex items-center gap-2">
+                          {bankSaved ? (
+                            <>
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                              <span className="text-green-800 font-medium">
+                                Informations bancaires configurées
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="h-5 w-5 text-yellow-600" />
+                              <span className="text-yellow-800 font-medium">
+                                Configurez vos informations bancaires pour recevoir vos paiements
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Formulaire */}
+                      <div className="space-y-4 max-w-lg">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">
+                            <Building2 className="h-4 w-4 inline mr-1" />
+                            Nom de la banque
+                          </label>
+                          <Input
+                            value={bankData.bank_name}
+                            onChange={(e) => setBankData(prev => ({ ...prev, bank_name: e.target.value }))}
+                            placeholder="Ex: BNP Paribas, Crédit Agricole..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium mb-1">
+                            <User className="h-4 w-4 inline mr-1" />
+                            Titulaire du compte *
+                          </label>
+                          <Input
+                            value={bankData.account_holder}
+                            onChange={(e) => setBankData(prev => ({ ...prev, account_holder: e.target.value }))}
+                            placeholder="Nom et prénom du titulaire"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Le nom doit correspondre exactement à celui sur votre compte bancaire
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium mb-1">
+                            <CreditCard className="h-4 w-4 inline mr-1" />
+                            IBAN *
+                          </label>
+                          <Input
+                            value={bankData.iban}
+                            onChange={(e) => setBankData(prev => ({ 
+                              ...prev, 
+                              iban: e.target.value.replace(/\s/g, '').toUpperCase() 
+                            }))}
+                            placeholder="FR76 1234 5678 9012 3456 7890 123"
+                            className="font-mono"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Votre IBAN se trouve sur votre RIB ou dans votre espace bancaire en ligne
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium mb-1">
+                            BIC / SWIFT
+                          </label>
+                          <Input
+                            value={bankData.bic}
+                            onChange={(e) => setBankData(prev => ({ ...prev, bic: e.target.value.toUpperCase() }))}
+                            placeholder="BNPAFRPP"
+                            className="font-mono"
+                          />
+                        </div>
+
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <h4 className="font-medium text-blue-900 mb-2">🔒 Sécurité</h4>
+                          <p className="text-sm text-blue-800">
+                            Vos informations bancaires sont stockées de manière sécurisée et ne sont 
+                            utilisées que pour vous verser vos gains. Elles ne sont jamais partagées 
+                            avec des tiers.
+                          </p>
+                        </div>
+
+                        <Button
+                          onClick={handleBankUpdate}
+                          disabled={loadingBank}
+                          className="bg-primary-600 hover:bg-primary-700"
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          {loadingBank ? 'Enregistrement...' : 'Enregistrer mes informations bancaires'}
+                        </Button>
+                      </div>
+
+                      {/* Lien vers le portefeuille */}
+                      <div className="border-t pt-6">
+                        <h3 className="font-medium mb-2">Mon portefeuille</h3>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Consultez votre solde, l'historique des transactions et demandez des retraits
+                        </p>
+                        <Button 
+                          variant="outline"
+                          onClick={() => router.push('/mes-ventes/wallet')}
+                        >
+                          <Wallet className="h-4 w-4 mr-2" />
+                          Accéder à mon portefeuille
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}

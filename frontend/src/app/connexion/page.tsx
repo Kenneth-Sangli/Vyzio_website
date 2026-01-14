@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +21,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isLoading } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -40,7 +41,9 @@ export default function LoginPage() {
         description: 'Bienvenue sur Vyzio !',
         variant: 'success',
       });
-      router.push('/dashboard');
+      // Rediriger vers l'URL demandée ou le dashboard par défaut
+      const redirectUrl = searchParams.get('redirect') || '/dashboard';
+      router.push(redirectUrl);
     } catch (error: any) {
       toast({
         title: 'Erreur de connexion',
