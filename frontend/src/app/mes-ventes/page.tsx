@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Header, Footer } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
-import { api, formatPrice } from '@/lib/api';
+import { api } from '@/lib/api';
+import { formatPrice } from '@/lib/utils';
 import {
   Package,
   Truck,
