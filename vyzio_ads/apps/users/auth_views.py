@@ -389,8 +389,17 @@ def logout(request):
 def send_verification_email(user, token):
     """
     Envoyer l'email de vérification
+    Désactivé si EMAIL_HOST n'est pas configuré
     """
-    verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Vérifier si l'email est configuré
+    if not getattr(settings, 'EMAIL_HOST', None) or settings.EMAIL_HOST == 'localhost':
+        logger.info(f"Email non configuré, skip envoi pour {user.email}")
+        return
+    
+    verification_url = f"{getattr(settings, 'FRONTEND_URL', 'https://vyzio-website.vercel.app')}/verify-email?token={token}"
     
     subject = 'Vyzio Ads - Vérifiez votre email'
     message = f"""
@@ -412,20 +421,31 @@ L'équipe Vyzio Ads
         send_mail(
             subject,
             message,
-            settings.DEFAULT_FROM_EMAIL,
+            getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@vyzio.com'),
             [user.email],
-            fail_silently=True  # En dev, ne pas bloquer si email échoue
+            fail_silently=True
         )
+        logger.info(f"Email de vérification envoyé à {user.email}")
     except Exception as e:
         # Log l'erreur mais ne pas bloquer
+        logger.warning(f"Erreur envoi email: {e}")
         print(f"Erreur envoi email: {e}")
 
 
 def send_password_reset_email(user, token):
     """
     Envoyer l'email de réinitialisation du mot de passe
+    Désactivé si EMAIL_HOST n'est pas configuré
     """
-    reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Vérifier si l'email est configuré
+    if not getattr(settings, 'EMAIL_HOST', None) or settings.EMAIL_HOST == 'localhost':
+        logger.info(f"Email non configuré, skip reset password pour {user.email}")
+        return
+    
+    reset_url = f"{getattr(settings, 'FRONTEND_URL', 'https://vyzio-website.vercel.app')}/reset-password?token={token}"
     
     subject = 'Vyzio Ads - Réinitialisation du mot de passe'
     message = f"""
@@ -447,9 +467,10 @@ L'équipe Vyzio Ads
         send_mail(
             subject,
             message,
-            settings.DEFAULT_FROM_EMAIL,
+            getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@vyzio.com'),
             [user.email],
             fail_silently=True
         )
+        logger.info(f"Email de reset password envoyé à {user.email}")
     except Exception as e:
-        print(f"Erreur envoi email: {e}")
+        logger.warning(f"Erreur envoi email reset: {e}")
