@@ -389,12 +389,18 @@ def logout(request):
 def send_verification_email(user, token):
     """
     Envoyer l'email de vérification
-    Désactivé si EMAIL_HOST_USER n'est pas configuré
+    TEMPORAIREMENT DÉSACTIVÉ - à réactiver quand SMTP sera configuré
     """
     import logging
     logger = logging.getLogger(__name__)
     
-    # Vérifier si l'email est configuré (EMAIL_HOST_USER doit être défini)
+    # TEMPORAIREMENT DÉSACTIVÉ - l'envoi d'email cause des timeouts
+    # TODO: Réactiver quand la configuration SMTP sera correcte
+    logger.info(f"Email de vérification NON envoyé (désactivé) pour {user.email}")
+    return
+    
+    # Code original commenté pour référence future
+    """
     email_host_user = getattr(settings, 'EMAIL_HOST_USER', '')
     if not email_host_user:
         logger.info(f"Email non configuré (EMAIL_HOST_USER vide), skip envoi pour {user.email}")
@@ -403,7 +409,7 @@ def send_verification_email(user, token):
     verification_url = f"{getattr(settings, 'FRONTEND_URL', 'https://vyzio-website.vercel.app')}/verify-email?token={token}"
     
     subject = 'Vyzio Ads - Vérifiez votre email'
-    message = f"""
+    message = f'''
 Bonjour {user.first_name or user.username},
 
 Merci de vous être inscrit sur Vyzio Ads !
@@ -416,7 +422,7 @@ Ce lien expire dans 24 heures.
 Si vous n'avez pas créé de compte, ignorez cet email.
 
 L'équipe Vyzio Ads
-    """
+    '''
     
     try:
         send_mail(
@@ -428,51 +434,18 @@ L'équipe Vyzio Ads
         )
         logger.info(f"Email de vérification envoyé à {user.email}")
     except Exception as e:
-        # Log l'erreur mais ne pas bloquer
         logger.warning(f"Erreur envoi email: {e}")
-        print(f"Erreur envoi email: {e}")
+    """
 
 
 def send_password_reset_email(user, token):
     """
     Envoyer l'email de réinitialisation du mot de passe
-    Désactivé si EMAIL_HOST_USER n'est pas configuré
+    TEMPORAIREMENT DÉSACTIVÉ - à réactiver quand SMTP sera configuré
     """
     import logging
     logger = logging.getLogger(__name__)
     
-    # Vérifier si l'email est configuré (EMAIL_HOST_USER doit être défini)
-    email_host_user = getattr(settings, 'EMAIL_HOST_USER', '')
-    if not email_host_user:
-        logger.info(f"Email non configuré (EMAIL_HOST_USER vide), skip reset password pour {user.email}")
-        return
-    
-    reset_url = f"{getattr(settings, 'FRONTEND_URL', 'https://vyzio-website.vercel.app')}/reset-password?token={token}"
-    
-    subject = 'Vyzio Ads - Réinitialisation du mot de passe'
-    message = f"""
-Bonjour {user.first_name or user.username},
-
-Vous avez demandé la réinitialisation de votre mot de passe.
-
-Cliquez sur le lien suivant pour définir un nouveau mot de passe :
-{reset_url}
-
-Ce lien expire dans 1 heure.
-
-Si vous n'avez pas fait cette demande, ignorez cet email.
-
-L'équipe Vyzio Ads
-    """
-    
-    try:
-        send_mail(
-            subject,
-            message,
-            getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@vyzio.com'),
-            [user.email],
-            fail_silently=True
-        )
-        logger.info(f"Email de reset password envoyé à {user.email}")
-    except Exception as e:
-        logger.warning(f"Erreur envoi email reset: {e}")
+    # TEMPORAIREMENT DÉSACTIVÉ - l'envoi d'email cause des timeouts
+    logger.info(f"Email reset password NON envoyé (désactivé) pour {user.email}")
+    return
