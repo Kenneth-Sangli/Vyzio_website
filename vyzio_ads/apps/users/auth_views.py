@@ -44,38 +44,52 @@ def register(request):
     POST /api/auth/register/
     Inscription d'un nouvel utilisateur
     """
-    serializer = UserRegistrationSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.save()
-        
-        # Créer le token de vérification email
-        token = secrets.token_urlsafe(32)
-        UserVerificationToken.objects.create(
-            user=user,
-            token=token,
-            expires_at=timezone.now() + timedelta(days=1)
-        )
-        
-        # Créer SellerProfile si vendeur
-        if user.role in ['seller', 'professional']:
-            SellerProfile.objects.create(user=user)
-        
-        # Envoyer l'email de vérification
-        send_verification_email(user, token)
-        
-        # Générer les tokens JWT
-        refresh = RefreshToken.for_user(user)
-        
-        return Response({
-            'message': 'Inscription réussie. Veuillez vérifier votre email.',
-            'user': UserDetailSerializer(user).data,
-            'tokens': {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }
-        }, status=status.HTTP_201_CREATED)
+    import logging
+    logger = logging.getLogger(__name__)
     
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            
+            # Créer le token de vérification email
+            token = secrets.token_urlsafe(32)
+            UserVerificationToken.objects.create(
+                user=user,
+                token=token,
+                expires_at=timezone.now() + timedelta(days=1)
+            )
+            
+            # Créer SellerProfile si vendeur
+            if user.role in ['seller', 'professional']:
+                SellerProfile.objects.create(user=user)
+            
+            # Envoyer l'email de vérification (ne pas bloquer si échec)
+            try:
+                send_verification_email(user, token)
+            except Exception as email_error:
+                logger.warning(f"Erreur envoi email de vérification: {email_error}")
+            
+            # Générer les tokens JWT
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'message': 'Inscription réussie. Veuillez vérifier votre email.',
+                'user': UserDetailSerializer(user).data,
+                'tokens': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        logger.error(f"Erreur inscription: {str(e)}", exc_info=True)
+        return Response({
+            'error': 'Une erreur est survenue lors de l\'inscription.',
+            'detail': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ==================== LOGIN ====================
