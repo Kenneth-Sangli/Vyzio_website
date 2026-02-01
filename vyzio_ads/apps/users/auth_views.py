@@ -389,14 +389,15 @@ def logout(request):
 def send_verification_email(user, token):
     """
     Envoyer l'email de vérification
-    Désactivé si EMAIL_HOST n'est pas configuré
+    Désactivé si EMAIL_HOST_USER n'est pas configuré
     """
     import logging
     logger = logging.getLogger(__name__)
     
-    # Vérifier si l'email est configuré
-    if not getattr(settings, 'EMAIL_HOST', None) or settings.EMAIL_HOST == 'localhost':
-        logger.info(f"Email non configuré, skip envoi pour {user.email}")
+    # Vérifier si l'email est configuré (EMAIL_HOST_USER doit être défini)
+    email_host_user = getattr(settings, 'EMAIL_HOST_USER', '')
+    if not email_host_user:
+        logger.info(f"Email non configuré (EMAIL_HOST_USER vide), skip envoi pour {user.email}")
         return
     
     verification_url = f"{getattr(settings, 'FRONTEND_URL', 'https://vyzio-website.vercel.app')}/verify-email?token={token}"
@@ -435,14 +436,15 @@ L'équipe Vyzio Ads
 def send_password_reset_email(user, token):
     """
     Envoyer l'email de réinitialisation du mot de passe
-    Désactivé si EMAIL_HOST n'est pas configuré
+    Désactivé si EMAIL_HOST_USER n'est pas configuré
     """
     import logging
     logger = logging.getLogger(__name__)
     
-    # Vérifier si l'email est configuré
-    if not getattr(settings, 'EMAIL_HOST', None) or settings.EMAIL_HOST == 'localhost':
-        logger.info(f"Email non configuré, skip reset password pour {user.email}")
+    # Vérifier si l'email est configuré (EMAIL_HOST_USER doit être défini)
+    email_host_user = getattr(settings, 'EMAIL_HOST_USER', '')
+    if not email_host_user:
+        logger.info(f"Email non configuré (EMAIL_HOST_USER vide), skip reset password pour {user.email}")
         return
     
     reset_url = f"{getattr(settings, 'FRONTEND_URL', 'https://vyzio-website.vercel.app')}/reset-password?token={token}"
