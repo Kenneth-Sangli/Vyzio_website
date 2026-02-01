@@ -229,6 +229,15 @@ class Command(BaseCommand):
         
         packs = [
             {
+                'name': 'Test - 1 Crédit',
+                'slug': 'test-1-credit',
+                'credits': 1,
+                'price': 0.50,
+                'description': '🧪 Pack de test à 0.50€',
+                'is_active': True,
+                'sort_order': 0,
+            },
+            {
                 'name': '1 Crédit',
                 'slug': '1-credit',
                 'credits': 1,
